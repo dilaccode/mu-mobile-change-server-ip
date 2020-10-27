@@ -70,12 +70,14 @@ namespace Mu_Change_Server_IP
                     ListWork[TASK.InputDNS1].Data,
                     ListWork[TASK.InputDNS2].Data
                     );
+
+                // wait some for win update
+                Thread.Sleep(1000);
+
                 WriteLog("Done. New IP For Verify: " + NetworkConfig.GetNetworkItem().IP);
                 WriteLog("Bonus Yearly >>>");
-                // wait some for win update
-                Thread.Sleep(3000);
                 //
-                WriteLog(WinHelper.cmd("ipconfig \all"));
+                WriteLog(WinHelper.cmd("ipconfig /all"));
             }
         }
         private void WorkWithInput(TextBox InputTextSender)
@@ -113,6 +115,7 @@ namespace Mu_Change_Server_IP
                     WorkItem.IsWork = true;
                     WorkItem.Data = InputData;
                     WriteLog(WorkItem.Data);
+
                     // for add data next step
                     IsClearInputText = false;
                 }
@@ -124,6 +127,9 @@ namespace Mu_Change_Server_IP
                 if (!InternetHelper.IsIPv4(InputData))
                 {
                     WriteLogError(InputData + " is wrong format IPv4");
+
+                    // for add data next step
+                    IsClearInputText = false;
                 }
                 else // correct format IPv4
                 {
@@ -171,6 +177,16 @@ namespace Mu_Change_Server_IP
             {
                 LogText.Clear();
             }
+            else if (InputData.ToLower().Trim() == "restart")
+            {
+                WriteLog("restart");
+                Application.Restart();
+            }
+            else if (InputData.ToLower().Trim() == "exit")
+            {
+                WriteLog("exit");
+                Application.Exit();
+            }
             else // normal cmd
             {
                 WriteLog(InputData);
@@ -190,6 +206,9 @@ namespace Mu_Change_Server_IP
             InitializeComponent();
             // fix bug mouse wheel on input
             this.InputText.MouseWheel += new MouseEventHandler(this.InputText_MouseWheel);
+
+            // start text, command here
+            LogText.Text = "[root ple]# hi... commands: clear, restart, exit\n";
         }
 
         private void Form1_Load(object sender, EventArgs e)
