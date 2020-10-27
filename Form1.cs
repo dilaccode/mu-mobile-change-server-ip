@@ -47,6 +47,7 @@ namespace Mu_Change_Server_IP
             var IsNotSetIPv4 = !ListWork[TASK.SetIPv4].IsWork;
             if (IsDoneInputIP && IsNotSetIPv4)
             {
+                WriteLog(ListWork[TASK.InputDNS].Data);
                 NetworkConfig.SetIP(
                     ListWork[TASK.InputIP].Data,
                     ListWork[TASK.InputNetmask].Data,
@@ -56,7 +57,7 @@ namespace Mu_Change_Server_IP
                     NetworkItemObj.Name,
                     ListWork[TASK.InputDNS].Data
                      );
-                WriteLog("Done.");
+                WriteLog("Done. New IP For Verify: " + NetworkConfig.GetNetworkItem().IP);
             }
         }
         private void WorkWithInput(string InputData)
