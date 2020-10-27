@@ -1,14 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
 using System.Drawing;
-using System.Linq;
-using System.Net.NetworkInformation;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 using System.Windows.Forms;
+using CongLibrary;
+using Mu_Change_Server_IP.Helper;
 
 namespace Mu_Change_Server_IP
 {
@@ -45,10 +41,23 @@ namespace Mu_Change_Server_IP
                 }
             }
 
-            // set new IP
-            var IsDoneInputIP = ListWork[TASK.InputDNS2].IsWork;
+            // set input data , and make more correct with IP
+            var IsDoneInputPreviousStep = ListWork[TASK.InputNetmask].IsWork;
+            var IsNotInputGateWay = !ListWork[TASK.InputGateway].IsWork;
+            if (IsDoneInputPreviousStep && IsNotInputGateWay)
+            {
+                var IPArray = ListWork[TASK.InputIP].Data.Trim().Split('.');
+                InputText.Text = string.Format("{0}.{1}.{2}.",
+                    IPArray[0], IPArray[1], IPArray[2]);
+                // make input posotion on last line
+                InputText.Focus();
+                InputText.SelectionStart = InputText.Text.Length;
+            }
+
+            // set new Data
+            IsDoneInputPreviousStep = ListWork[TASK.InputDNS2].IsWork;
             var IsNotSetIPv4 = !ListWork[TASK.SetIPv4].IsWork;
-            if (IsDoneInputIP && IsNotSetIPv4)
+            if (IsDoneInputPreviousStep && IsNotSetIPv4)
             {
                 NetworkConfig.SetIP(
                     NetworkItemObj.Name,
@@ -66,59 +75,112 @@ namespace Mu_Change_Server_IP
                 // wait some for win update
                 Thread.Sleep(3000);
                 //
-                WriteLog(WinHelper.cmd("ipconfig"));
+                WriteLog(WinHelper.cmd("ipconfig \all"));
             }
         }
-        private void WorkWithInput(string InputData)
+        private void WorkWithInput(TextBox InputTextSender)
         {
+            string InputData = InputTextSender.Text;
+            // set false if you set data for InputText
+            bool IsClearInputText = true;
             // new ip
             if (!ListWork[TASK.InputIP].IsWork)
             {
-                var WorkItem = ListWork[TASK.InputIP];
-                WorkItem.IsWork = true;
-                WorkItem.Data = InputText.Text;
-                WriteLog(WorkItem.Data);
+                // check correct data
+                if (!InternetHelper.IsIPv4(InputData))
+                {
+                    WriteLogError(InputData + " is wrong format IPv4");
+                }
+                else // correct format IPv4
+                {
+                    var WorkItem = ListWork[TASK.InputIP];
+                    WorkItem.IsWork = true;
+                    WorkItem.Data = InputData;
+                    WriteLog(WorkItem.Data);
+                }
                 ProcessNextWork();
             }
             else if (!ListWork[TASK.InputNetmask].IsWork)
             {
-                var WorkItem = ListWork[TASK.InputNetmask];
-                WorkItem.IsWork = true;
-                WorkItem.Data = InputText.Text;
-                WriteLog(WorkItem.Data);
+                // check correct data
+                if (!InternetHelper.IsIPv4(InputData))
+                {
+                    WriteLogError(InputData + " is wrong format IPv4");
+                }
+                else // correct format IPv4
+                {
+                    var WorkItem = ListWork[TASK.InputNetmask];
+                    WorkItem.IsWork = true;
+                    WorkItem.Data = InputData;
+                    WriteLog(WorkItem.Data);
+                    // for add data next step
+                    IsClearInputText = false;
+                }
                 ProcessNextWork();
             }
             else if (!ListWork[TASK.InputGateway].IsWork)
             {
-                var WorkItem = ListWork[TASK.InputGateway];
-                WorkItem.IsWork = true;
-                WorkItem.Data = InputText.Text;
-                WriteLog(WorkItem.Data);
+                // check correct data
+                if (!InternetHelper.IsIPv4(InputData))
+                {
+                    WriteLogError(InputData + " is wrong format IPv4");
+                }
+                else // correct format IPv4
+                {
+                    var WorkItem = ListWork[TASK.InputGateway];
+                    WorkItem.IsWork = true;
+                    WorkItem.Data = InputData;
+                    WriteLog(WorkItem.Data);
+                }
                 ProcessNextWork();
             }
             else if (!ListWork[TASK.InputDNS1].IsWork)
             {
-                var WorkItem = ListWork[TASK.InputDNS1];
-                WorkItem.IsWork = true;
-                WorkItem.Data = InputText.Text;
-                WriteLog(WorkItem.Data);
+                // check correct data
+                if (!InternetHelper.IsIPv4(InputData))
+                {
+                    WriteLogError(InputData + " is wrong format IPv4");
+                }
+                else // correct format IPv4
+                {
+                    var WorkItem = ListWork[TASK.InputDNS1];
+                    WorkItem.IsWork = true;
+                    WorkItem.Data = InputData;
+                    WriteLog(WorkItem.Data);
+                }
                 ProcessNextWork();
             }
             else if (!ListWork[TASK.InputDNS2].IsWork)
             {
-                var WorkItem = ListWork[TASK.InputDNS2];
-                WorkItem.IsWork = true;
-                WorkItem.Data = InputText.Text;
-                WriteLog(WorkItem.Data);
+                // check correct data
+                if (!InternetHelper.IsIPv4(InputData))
+                {
+                    WriteLogError(InputData + " is wrong format IPv4");
+                }
+                else // correct format IPv4
+                {
+                    var WorkItem = ListWork[TASK.InputDNS2];
+                    WorkItem.IsWork = true;
+                    WorkItem.Data = InputData;
+                    WriteLog(WorkItem.Data);
+                }
                 ProcessNextWork();
             }
             // some command home make
-            else if (InputText.Text.ToLower().Trim() == "clear") {
+            else if (InputData.ToLower().Trim() == "clear")
+            {
                 LogText.Clear();
             }
             else // normal cmd
             {
-                WriteLog(WinHelper.cmd(InputText.Text));
+                WriteLog(InputData);
+                WriteLog(WinHelper.cmd(InputData));
+            }
+
+            // Clear Input
+            if (IsClearInputText)
+            {
+                InputTextSender.Clear();
             }
         }
 
@@ -135,7 +197,7 @@ namespace Mu_Change_Server_IP
             NetworkItemObj = new NetworkItem();
             /// change IP
             NetworkItemObj = NetworkConfig.GetNetworkItem();
-            WriteLog(NetworkItemObj.Name+", IP: " + NetworkItemObj.IP);
+            WriteLog(NetworkItemObj.Name + ", IP: " + NetworkItemObj.IP);
             ProcessNextWork();
         }
 
@@ -144,8 +206,13 @@ namespace Mu_Change_Server_IP
             LogText.Text = string.Format("{0}\n[root ple]# {1}", LogText.Text, TextNew);
 
         }
+        private void WriteLogError(string TextNew)
+        {
+            LogText.Text = string.Format("{0}\n\n[root ple]# ERROR: {1}\n", LogText.Text, TextNew);
 
-      
+        }
+
+
         private void InputText_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.KeyCode == Keys.Enter)
@@ -153,12 +220,8 @@ namespace Mu_Change_Server_IP
                 // do some thing process input text
 
                 /// work with input data
-                WorkWithInput(InputText.Text);
+                WorkWithInput(InputText);
 
-
-                // reset
-                InputText.Clear();
-                InputText.Focus();
             }
         }
         private void LogText_KeyDown(object sender, KeyEventArgs e)
@@ -180,6 +243,11 @@ namespace Mu_Change_Server_IP
             Cursor.Clip = new Rectangle(this.Location, this.Size);
             //
             LogText.Focus();
+        }
+
+        private void InputText_TextChanged(object sender, EventArgs e)
+        {
+
         }
     }
 }

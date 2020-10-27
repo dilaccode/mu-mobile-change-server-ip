@@ -58,6 +58,7 @@
             this.InputText.Name = "InputText";
             this.InputText.Size = new System.Drawing.Size(612, 19);
             this.InputText.TabIndex = 2;
+            this.InputText.TextChanged += new System.EventHandler(this.InputText_TextChanged);
             this.InputText.KeyDown += new System.Windows.Forms.KeyEventHandler(this.InputText_KeyDown);
             // 
             // label1
