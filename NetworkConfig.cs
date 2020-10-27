@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Management;
 using System.Net.NetworkInformation;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Mu_Change_Server_IP
@@ -20,70 +22,24 @@ namespace Mu_Change_Server_IP
         /// <param name="subnetMask">The Submask IP Address</param>
         /// <param name="gateway">The gateway.</param>
         /// <remarks>Requires a reference to the System.Management namespace</remarks>
-        public static void SetIP(string ipAddress, string subnetMask, string gateway)
+        public static void SetIP(string NetworkName, string IP, string Netmask, string Gateway)
         {
-            using (var networkConfigMng = new ManagementClass("Win32_NetworkAdapterConfiguration"))
-            {
-                using (var networkConfigs = networkConfigMng.GetInstances())
-                {
-                    foreach (var managementObject in networkConfigs.Cast<ManagementObject>().Where(managementObject => (bool)managementObject["IPEnabled"]))
-                    {
-                        using (var newIP = managementObject.GetMethodParameters("EnableStatic"))
-                        {
-                            // Set new IP address and subnet if needed
-                            if ((!String.IsNullOrEmpty(ipAddress)) || (!String.IsNullOrEmpty(subnetMask)))
-                            {
-                                if (!String.IsNullOrEmpty(ipAddress))
-                                {
-                                    newIP["IPAddress"] = new[] { ipAddress };
-                                }
+            var Command = string.Format("netsh interface ip set address \"{0}\" static {1} {2} {3} 1",
+                NetworkName, IP, Netmask, Gateway);
+            WinHelper.cmd(Command);
 
-                                if (!String.IsNullOrEmpty(subnetMask))
-                                {
-                                    newIP["SubnetMask"] = new[] { subnetMask };
-                                }
-
-                                managementObject.InvokeMethod("EnableStatic", newIP, null);
-                            }
-
-                            // Set mew gateway if needed
-                            if (!String.IsNullOrEmpty(gateway))
-                            {
-                                using (var newGateway = managementObject.GetMethodParameters("SetGateways"))
-                                {
-                                    newGateway["DefaultIPGateway"] = new[] { gateway };
-                                    newGateway["GatewayCostMetric"] = new[] { 1 };
-                                    managementObject.InvokeMethod("SetGateways", newGateway, null);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
         }
 
-        /// <summary>
-        /// Set's the DNS Server of the local machine
-        /// </summary>
-        /// <param name="nic">NIC address, NetworkInterface.GetAllNetworkInterfaces()</param>
-        /// <param name="dnsServers">Comma seperated list of DNS server addresses</param>
-        /// <remarks>Requires a reference to the System.Management namespace</remarks>
-        public static void SetDNS(string nic, string dnsServers)
+       
+
+        public static void SetDNS(string NetworkName, string DNS1,string DNS2)
         {
-            using (var networkConfigMng = new ManagementClass("Win32_NetworkAdapterConfiguration"))
-            {
-                using (var networkConfigs = networkConfigMng.GetInstances())
-                {
-                    foreach (var managementObject in networkConfigs.Cast<ManagementObject>().Where(objMO => (bool)objMO["IPEnabled"] && objMO["Caption"].Equals(nic)))
-                    {
-                        using (var newDNS = managementObject.GetMethodParameters("SetDNSServerSearchOrder"))
-                        {
-                            newDNS["DNSServerSearchOrder"] = dnsServers.Split(',');
-                            managementObject.InvokeMethod("SetDNSServerSearchOrder", newDNS, null);
-                        }
-                    }
-                }
-            }
+            var Command = string.Format("netsh interface ipv4 set dns name=\"{0}\" static {1}",
+                NetworkName, DNS1);
+            WinHelper.cmd(Command);
+            var Command1 = string.Format("netsh interface ipv4 add dns \"{0}\" address={1} index=2",
+               NetworkName, DNS2);
+            WinHelper.cmd(Command1);
         }
         public static NetworkItem GetNetworkItem()
         {
@@ -103,7 +59,7 @@ namespace Mu_Change_Server_IP
                         }
                         // break for get one
                         if (IsGetOne) break;
-                    }                   
+                    }
                 }
                 // break for get one
                 if (IsGetOne) break;
@@ -111,7 +67,8 @@ namespace Mu_Change_Server_IP
             return NetworkItemObj;
         }
     }
-    public class NetworkItem {
+    public class NetworkItem
+    {
         public string Name;
         /// <summary>
         /// it mean IP v4 OK!

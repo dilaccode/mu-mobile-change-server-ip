@@ -6,6 +6,7 @@ using System.Drawing;
 using System.Linq;
 using System.Net.NetworkInformation;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
@@ -19,15 +20,17 @@ namespace Mu_Change_Server_IP
             InputIP,
             InputNetmask,
             InputGateway,
-            InputDNS,
+            InputDNS1,
+            InputDNS2,
             SetIPv4,
         }
         private Dictionary<TASK, WorkItem> ListWork = new Dictionary<TASK, WorkItem>() {
             {TASK.InputIP,new WorkItem(false,"Input IP, ex 192.168.1.44","")},
             {TASK.InputNetmask, new WorkItem(false,"Input Netmask, ex 255.255.255.0","")},
             {TASK.InputGateway, new WorkItem(false,"Input Gateway ex 192.168.1.1","")},
-            {TASK.InputDNS, new WorkItem(false,"Input DNS, ex 8.8.8.8,8.8.4.4 Use comma ',' for 2 items","")},
-            {TASK.SetIPv4, new WorkItem(false,"Set IPv4","")},
+            {TASK.InputDNS1, new WorkItem(false,"Input DNS1, ex 8.8.8.8","")},
+            {TASK.InputDNS2, new WorkItem(false,"Input DNS2, ex 8.8.4.4","")},
+            {TASK.SetIPv4, new WorkItem(false,"Set IP, DNS","")},
         };
         private void ProcessNextWork()
         {
@@ -43,21 +46,27 @@ namespace Mu_Change_Server_IP
             }
 
             // set new IP
-            var IsDoneInputIP = ListWork[TASK.InputDNS].IsWork;
+            var IsDoneInputIP = ListWork[TASK.InputDNS2].IsWork;
             var IsNotSetIPv4 = !ListWork[TASK.SetIPv4].IsWork;
             if (IsDoneInputIP && IsNotSetIPv4)
             {
-                WriteLog(ListWork[TASK.InputDNS].Data);
                 NetworkConfig.SetIP(
+                    NetworkItemObj.Name,
                     ListWork[TASK.InputIP].Data,
                     ListWork[TASK.InputNetmask].Data,
                     ListWork[TASK.InputGateway].Data
                     );
                 NetworkConfig.SetDNS(
                     NetworkItemObj.Name,
-                    ListWork[TASK.InputDNS].Data
-                     );
+                    ListWork[TASK.InputDNS1].Data,
+                    ListWork[TASK.InputDNS2].Data
+                    );
                 WriteLog("Done. New IP For Verify: " + NetworkConfig.GetNetworkItem().IP);
+                WriteLog("Bonus Yearly >>>");
+                // wait some for win update
+                Thread.Sleep(3000);
+                //
+                WriteLog(WinHelper.cmd("ipconfig"));
             }
         }
         private void WorkWithInput(string InputData)
@@ -87,13 +96,29 @@ namespace Mu_Change_Server_IP
                 WriteLog(WorkItem.Data);
                 ProcessNextWork();
             }
-            else if (!ListWork[TASK.InputDNS].IsWork)
+            else if (!ListWork[TASK.InputDNS1].IsWork)
             {
-                var WorkItem = ListWork[TASK.InputDNS];
+                var WorkItem = ListWork[TASK.InputDNS1];
                 WorkItem.IsWork = true;
                 WorkItem.Data = InputText.Text;
                 WriteLog(WorkItem.Data);
                 ProcessNextWork();
+            }
+            else if (!ListWork[TASK.InputDNS2].IsWork)
+            {
+                var WorkItem = ListWork[TASK.InputDNS2];
+                WorkItem.IsWork = true;
+                WorkItem.Data = InputText.Text;
+                WriteLog(WorkItem.Data);
+                ProcessNextWork();
+            }
+            // some command home make
+            else if (InputText.Text.ToLower().Trim() == "clear") {
+                LogText.Clear();
+            }
+            else // normal cmd
+            {
+                WriteLog(WinHelper.cmd(InputText.Text));
             }
         }
 
@@ -101,6 +126,8 @@ namespace Mu_Change_Server_IP
         public Form1()
         {
             InitializeComponent();
+            // fix bug mouse wheel on input
+            this.InputText.MouseWheel += new MouseEventHandler(this.InputText_MouseWheel);
         }
 
         private void Form1_Load(object sender, EventArgs e)
@@ -108,7 +135,7 @@ namespace Mu_Change_Server_IP
             NetworkItemObj = new NetworkItem();
             /// change IP
             NetworkItemObj = NetworkConfig.GetNetworkItem();
-            WriteLog("Old IP: " + NetworkItemObj.IP);
+            WriteLog(NetworkItemObj.Name+", IP: " + NetworkItemObj.IP);
             ProcessNextWork();
         }
 
@@ -118,13 +145,7 @@ namespace Mu_Change_Server_IP
 
         }
 
-        private void LogText_KeyDown(object sender, KeyEventArgs e)
-        {
-            if (e.KeyCode == Keys.Enter)
-            {
-                InputText.Focus();
-            }
-        }
+      
         private void InputText_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.KeyCode == Keys.Enter)
@@ -140,7 +161,10 @@ namespace Mu_Change_Server_IP
                 InputText.Focus();
             }
         }
-
+        private void LogText_KeyDown(object sender, KeyEventArgs e)
+        {
+            InputText.Focus();
+        }
         private void LogText_TextChanged(object sender, EventArgs e)
         {
             // auto scroll bottom
@@ -148,6 +172,14 @@ namespace Mu_Change_Server_IP
             LogText.ScrollToCaret();
         }
 
-
+        private void InputText_MouseWheel(object sender, EventArgs e)
+        {
+            // move mouse to Log Text
+            this.Cursor = new Cursor(Cursor.Current.Handle);
+            Cursor.Position = new Point(Cursor.Position.X - 0, Cursor.Position.Y - 100);
+            Cursor.Clip = new Rectangle(this.Location, this.Size);
+            //
+            LogText.Focus();
+        }
     }
 }
