@@ -47,10 +47,11 @@
             this.LogText.TabIndex = 3;
             this.LogText.Text = "[root ple]# hi...";
             this.LogText.TextChanged += new System.EventHandler(this.LogText_TextChanged);
+            this.LogText.KeyDown += new System.Windows.Forms.KeyEventHandler(this.LogText_KeyDown);
             // 
             // InputText
             // 
-            this.InputText.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(64)))), ((int)(((byte)(64)))), ((int)(((byte)(64)))));
+            this.InputText.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(13)))), ((int)(((byte)(13)))), ((int)(((byte)(13)))));
             this.InputText.BorderStyle = System.Windows.Forms.BorderStyle.None;
             this.InputText.ForeColor = System.Drawing.Color.Lime;
             this.InputText.Location = new System.Drawing.Point(110, 439);
@@ -86,6 +87,7 @@
             this.MaximizeBox = false;
             this.MinimizeBox = false;
             this.Name = "Form1";
+            this.StartPosition = System.Windows.Forms.FormStartPosition.Manual;
             this.Text = "Powerful Bash University";
             this.Load += new System.EventHandler(this.Form1_Load);
             this.ResumeLayout(false);

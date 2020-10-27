@@ -20,7 +20,7 @@ namespace Mu_Change_Server_IP
         /// <param name="subnetMask">The Submask IP Address</param>
         /// <param name="gateway">The gateway.</param>
         /// <remarks>Requires a reference to the System.Management namespace</remarks>
-        public void SetIP(string ipAddress, string subnetMask, string gateway)
+        public static void SetIP(string ipAddress, string subnetMask, string gateway)
         {
             using (var networkConfigMng = new ManagementClass("Win32_NetworkAdapterConfiguration"))
             {
@@ -68,7 +68,7 @@ namespace Mu_Change_Server_IP
         /// <param name="nic">NIC address, NetworkInterface.GetAllNetworkInterfaces()</param>
         /// <param name="dnsServers">Comma seperated list of DNS server addresses</param>
         /// <remarks>Requires a reference to the System.Management namespace</remarks>
-        public void SetNameservers(string nic, string dnsServers)
+        public static void SetDNS(string nic, string dnsServers)
         {
             using (var networkConfigMng = new ManagementClass("Win32_NetworkAdapterConfiguration"))
             {
