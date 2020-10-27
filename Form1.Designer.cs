@@ -28,10 +28,15 @@
         /// </summary>
         private void InitializeComponent()
         {
+            this.components = new System.ComponentModel.Container();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Form1));
             this.LogText = new System.Windows.Forms.RichTextBox();
             this.InputText = new System.Windows.Forms.TextBox();
             this.label1 = new System.Windows.Forms.Label();
+            this.contextMenuStrip1 = new System.Windows.Forms.ContextMenuStrip(this.components);
+            this.CopyMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.PasteMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.contextMenuStrip1.SuspendLayout();
             this.SuspendLayout();
             // 
             // LogText
@@ -48,6 +53,7 @@
             this.LogText.Text = "[root ple]# hi...";
             this.LogText.TextChanged += new System.EventHandler(this.LogText_TextChanged);
             this.LogText.KeyDown += new System.Windows.Forms.KeyEventHandler(this.LogText_KeyDown);
+            this.LogText.MouseDown += new System.Windows.Forms.MouseEventHandler(this.LogText_MouseDown);
             // 
             // InputText
             // 
@@ -71,6 +77,30 @@
             this.label1.TabIndex = 4;
             this.label1.Text = "[root ple]#";
             // 
+            // contextMenuStrip1
+            // 
+            this.contextMenuStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.CopyMenuItem,
+            this.PasteMenuItem});
+            this.contextMenuStrip1.Name = "contextMenuStrip1";
+            this.contextMenuStrip1.Size = new System.Drawing.Size(181, 70);
+            // 
+            // CopyMenuItem
+            // 
+            this.CopyMenuItem.Image = ((System.Drawing.Image)(resources.GetObject("CopyMenuItem.Image")));
+            this.CopyMenuItem.Name = "CopyMenuItem";
+            this.CopyMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.CopyMenuItem.Text = "Copy";
+            this.CopyMenuItem.Click += new System.EventHandler(this.CopyMenuItem_Click);
+            // 
+            // PasteMenuItem
+            // 
+            this.PasteMenuItem.Image = ((System.Drawing.Image)(resources.GetObject("PasteMenuItem.Image")));
+            this.PasteMenuItem.Name = "PasteMenuItem";
+            this.PasteMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.PasteMenuItem.Text = "Paste";
+            this.PasteMenuItem.Click += new System.EventHandler(this.PasteMenuItem_Click);
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(9F, 19F);
@@ -91,6 +121,7 @@
             this.StartPosition = System.Windows.Forms.FormStartPosition.Manual;
             this.Text = "Powerful Bash University";
             this.Load += new System.EventHandler(this.Form1_Load);
+            this.contextMenuStrip1.ResumeLayout(false);
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -101,6 +132,9 @@
         private System.Windows.Forms.RichTextBox LogText;
         private System.Windows.Forms.TextBox InputText;
         private System.Windows.Forms.Label label1;
+        private System.Windows.Forms.ContextMenuStrip contextMenuStrip1;
+        private System.Windows.Forms.ToolStripMenuItem CopyMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem PasteMenuItem;
     }
 }
 

@@ -268,5 +268,28 @@ namespace Mu_Change_Server_IP
         {
 
         }
+
+
+        private void LogText_MouseDown(object sender, MouseEventArgs e)
+        {
+            switch (e.Button)
+            {
+                case MouseButtons.Right:
+                    {
+                        contextMenuStrip1.Show(this, new Point(e.X, e.Y));//places the menu at the pointer position
+                    }
+                    break;
+            }
+        }
+
+        private void CopyMenuItem_Click(object sender, EventArgs e)
+        {
+            WriteLog("Copy Work");
+        }
+
+        private void PasteMenuItem_Click(object sender, EventArgs e)
+        {
+            WriteLog("Paste Work");
+        }
     }
 }
