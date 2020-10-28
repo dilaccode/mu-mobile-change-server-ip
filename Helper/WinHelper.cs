@@ -1,6 +1,6 @@
 ﻿using System.Diagnostics;
 
-namespace CongLibrary
+namespace CongLibrary.Helper
 {
     class WinHelper
     {

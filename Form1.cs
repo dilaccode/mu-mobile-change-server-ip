@@ -3,13 +3,14 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Threading;
 using System.Windows.Forms;
-using CongLibrary;
-using Mu_Change_Server_IP.Helper;
+using CongLibrary.CustomControls;
+using CongLibrary.Helper;
 
 namespace Mu_Change_Server_IP
 {
     public partial class Form1 : Form
     {
+        #region >>> Variable <<<
         private NetworkItem NetworkItemObj;
         private enum TASK
         {
@@ -20,6 +21,8 @@ namespace Mu_Change_Server_IP
             InputDNS2,
             SetIPv4,
         }
+        private Point LastMousePoition = new Point(0, 0);
+        private bool IsCopyInputText = false;
         private Dictionary<TASK, WorkItem> ListWork = new Dictionary<TASK, WorkItem>() {
             {TASK.InputIP,new WorkItem(false,"Input IP, ex 192.168.1.44","")},
             {TASK.InputNetmask, new WorkItem(false,"Input Netmask, ex 255.255.255.0","")},
@@ -28,6 +31,10 @@ namespace Mu_Change_Server_IP
             {TASK.InputDNS2, new WorkItem(false,"Input DNS2, ex 8.8.4.4","")},
             {TASK.SetIPv4, new WorkItem(false,"Set IP, DNS","")},
         };
+        PopupFeedback PopupFeedbackObj;
+        #endregion >>> Variable <<<
+
+        #region >>> Work <<<
         private void ProcessNextWork()
         {
             foreach (KeyValuePair<TASK, WorkItem> Work in ListWork)
@@ -49,9 +56,10 @@ namespace Mu_Change_Server_IP
                 var IPArray = ListWork[TASK.InputIP].Data.Trim().Split('.');
                 InputText.Text = string.Format("{0}.{1}.{2}.",
                     IPArray[0], IPArray[1], IPArray[2]);
-                // make input posotion on last line
-                InputText.Focus();
-                InputText.SelectionStart = InputText.Text.Length;
+                InputText.MoveCursorToEnd();
+
+                //InputText.Focus();
+                //InputText.SelectionStart = InputText.Text.Length;
             }
 
             // set new Data
@@ -199,27 +207,6 @@ namespace Mu_Change_Server_IP
                 InputTextSender.Clear();
             }
         }
-
-
-        public Form1()
-        {
-            InitializeComponent();
-            // fix bug mouse wheel on input
-            this.InputText.MouseWheel += new MouseEventHandler(this.InputText_MouseWheel);
-
-            // start text, command here
-            LogText.Text = "[root ple]# hi... commands: clear, restart, exit\n";
-        }
-
-        private void Form1_Load(object sender, EventArgs e)
-        {
-            NetworkItemObj = new NetworkItem();
-            /// change IP
-            NetworkItemObj = NetworkConfig.GetNetworkItem();
-            WriteLog(NetworkItemObj.Name + ", IP: " + NetworkItemObj.IP);
-            ProcessNextWork();
-        }
-
         private void WriteLog(string TextNew)
         {
             LogText.Text = string.Format("{0}\n[root ple]# {1}", LogText.Text, TextNew);
@@ -230,8 +217,74 @@ namespace Mu_Change_Server_IP
             LogText.Text = string.Format("{0}\n\n[root ple]# ERROR: {1}\n", LogText.Text, TextNew);
 
         }
+        #endregion >>> Work <<<
 
+        #region >>> Form <<<
+        public Form1()
+        {
+            InitializeComponent();
+            // fix bug mouse wheel on input
+            this.InputText.MouseWheel += new MouseEventHandler(this.InputText_MouseWheel);
 
+            // start text, command here
+            LogText.Text = "[root ple]# hi... commands: clear, restart, exit\n";
+
+            // Popup Feedback
+            Size RealSoftSize = new Size(this.Size.Width,
+                this.InputText.Top + this.InputText.Height);
+            PopupFeedbackObj = new PopupFeedback(
+                     PopupFeedbackPanel, PopupFeedbackText, RealSoftSize);
+
+        }
+
+        private void Form1_Load(object sender, EventArgs e)
+        {
+            NetworkItemObj = new NetworkItem();
+            /// change IP
+            NetworkItemObj = NetworkConfig.GetNetworkItem();
+            WriteLog(NetworkItemObj.Name + ", IP: " + NetworkItemObj.IP);
+            ProcessNextWork();
+
+        }
+
+        private void LogText_KeyDown(object sender, KeyEventArgs e)
+        {
+            InputText.Focus();
+        }
+        private void LogText_TextChanged(object sender, EventArgs e)
+        {
+            // auto scroll bottom
+            LogText.SelectionStart = LogText.Text.Length;
+            LogText.ScrollToCaret();
+        }
+        private void LogText_MouseDown(object sender, MouseEventArgs e)
+        {
+            LastMousePoition = new Point(e.X, e.Y);
+            //
+            IsCopyInputText = false;
+        }
+
+        private void InputText_MouseDown(object sender, MouseEventArgs e)
+        {
+            LastMousePoition = new Point(
+                e.X + InputText.Left,
+                e.Y + InputText.Top
+                );
+            IsCopyInputText = true;
+        }
+        private void InputText_TextChanged(object sender, EventArgs e)
+        {
+
+        }
+        private void InputText_MouseWheel(object sender, EventArgs e)
+        {
+            // move mouse to Log Text
+            this.Cursor = new Cursor(Cursor.Current.Handle);
+            Cursor.Position = new Point(Cursor.Position.X - 0, Cursor.Position.Y - 100);
+            Cursor.Clip = new Rectangle(this.Location, this.Size);
+            //
+            LogText.Focus();
+        }
         private void InputText_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.KeyCode == Keys.Enter)
@@ -243,53 +296,38 @@ namespace Mu_Change_Server_IP
 
             }
         }
-        private void LogText_KeyDown(object sender, KeyEventArgs e)
-        {
-            InputText.Focus();
-        }
-        private void LogText_TextChanged(object sender, EventArgs e)
-        {
-            // auto scroll bottom
-            LogText.SelectionStart = LogText.Text.Length;
-            LogText.ScrollToCaret();
-        }
-
-        private void InputText_MouseWheel(object sender, EventArgs e)
-        {
-            // move mouse to Log Text
-            this.Cursor = new Cursor(Cursor.Current.Handle);
-            Cursor.Position = new Point(Cursor.Position.X - 0, Cursor.Position.Y - 100);
-            Cursor.Clip = new Rectangle(this.Location, this.Size);
-            //
-            LogText.Focus();
-        }
-
-        private void InputText_TextChanged(object sender, EventArgs e)
-        {
-
-        }
-
-
-        private void LogText_MouseDown(object sender, MouseEventArgs e)
-        {
-            switch (e.Button)
-            {
-                case MouseButtons.Right:
-                    {
-                        contextMenuStrip1.Show(this, new Point(e.X, e.Y));//places the menu at the pointer position
-                    }
-                    break;
-            }
-        }
 
         private void CopyMenuItem_Click(object sender, EventArgs e)
         {
-            WriteLog("Copy Work");
+            if (IsCopyInputText)
+            {
+                InputText.Copy();
+                IsCopyInputText = false;
+            }
+            else
+                LogText.Copy();
+            // UX feedback
+            Point FeedbackShowPosition = new Point(
+                LastMousePoition.X + CopyMenuItem.Width,
+                LastMousePoition.Y
+                );
+            PopupFeedbackObj.Show("Copied", FeedbackShowPosition);
         }
 
         private void PasteMenuItem_Click(object sender, EventArgs e)
         {
             WriteLog("Paste Work");
+            InputText.Text += Clipboard.GetText();
+            InputText.MoveCursorToEnd();
+
+            // UX feedback
+            Point FeedbackShowPosition = new Point(
+                LastMousePoition.X + PasteMenuItem.Width,
+                LastMousePoition.Y + PasteMenuItem.Height
+                );
+            PopupFeedbackObj.Show("Pasted", FeedbackShowPosition);
         }
+
+        #endregion >>> Form <<<
     }
 }

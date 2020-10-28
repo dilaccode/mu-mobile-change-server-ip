@@ -1,5 +1,5 @@
 ﻿using System.Net.NetworkInformation;
-using CongLibrary;
+using CongLibrary.Helper;
 
 namespace Mu_Change_Server_IP
 {
