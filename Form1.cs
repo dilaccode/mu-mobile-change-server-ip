@@ -316,7 +316,6 @@ namespace Mu_Change_Server_IP
 
         private void PasteMenuItem_Click(object sender, EventArgs e)
         {
-            WriteLog("Paste Work");
             InputText.Text += Clipboard.GetText();
             InputText.MoveCursorToEnd();
 
