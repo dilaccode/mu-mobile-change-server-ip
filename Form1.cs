@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.IO;
 using System.Threading;
 using System.Windows.Forms;
 using CongLibrary.CustomControls;
 using CongLibrary.Helper;
+using Newtonsoft.Json;
 
 namespace Mu_Change_Server_IP
 {
@@ -35,170 +37,31 @@ namespace Mu_Change_Server_IP
         #endregion >>> Variable <<<
 
         #region >>> Work <<<
-        private void ProcessNextWork()
-        {
-            foreach (KeyValuePair<TASK, WorkItem> Work in ListWork)
-            {
-                var WorkItem = ListWork[Work.Key];
-                var IsNotWork = !WorkItem.IsWork;
-                if (IsNotWork)
-                {
-                    WriteLog(WorkItem.Text + " :");
-                    break;
-                }
-            }
-
-            // set input data , and make more correct with IP
-            var IsDoneInputPreviousStep = ListWork[TASK.InputNetmask].IsWork;
-            var IsNotInputGateWay = !ListWork[TASK.InputGateway].IsWork;
-            if (IsDoneInputPreviousStep && IsNotInputGateWay)
-            {
-                var IPArray = ListWork[TASK.InputIP].Data.Trim().Split('.');
-                InputText.Text = string.Format("{0}.{1}.{2}.",
-                    IPArray[0], IPArray[1], IPArray[2]);
-                InputText.MoveCursorToEnd();
-
-                //InputText.Focus();
-                //InputText.SelectionStart = InputText.Text.Length;
-            }
-
-            // set new Data
-            IsDoneInputPreviousStep = ListWork[TASK.InputDNS2].IsWork;
-            var IsNotSetIPv4 = !ListWork[TASK.SetIPv4].IsWork;
-            if (IsDoneInputPreviousStep && IsNotSetIPv4)
-            {
-                NetworkConfig.SetIP(
-                    NetworkItemObj.Name,
-                    ListWork[TASK.InputIP].Data,
-                    ListWork[TASK.InputNetmask].Data,
-                    ListWork[TASK.InputGateway].Data
-                    );
-                NetworkConfig.SetDNS(
-                    NetworkItemObj.Name,
-                    ListWork[TASK.InputDNS1].Data,
-                    ListWork[TASK.InputDNS2].Data
-                    );
-
-                // wait some for win update
-                Thread.Sleep(1000);
-
-                WriteLog("Done. New IP For Verify: " + NetworkConfig.GetNetworkItem().IP);
-                WriteLog("Bonus Yearly >>>");
-                //
-                WriteLog(WinHelper.cmd("ipconfig /all"));
-            }
-        }
         private void WorkWithInput(TextBox InputTextSender)
         {
             string InputData = InputTextSender.Text;
             // set false if you set data for InputText
             bool IsClearInputText = true;
-            // new ip
-            if (!ListWork[TASK.InputIP].IsWork)
-            {
-                // check correct data
-                if (!InternetHelper.IsIPv4(InputData))
-                {
-                    WriteLogError(InputData + " is wrong format IPv4");
-                }
-                else // correct format IPv4
-                {
-                    var WorkItem = ListWork[TASK.InputIP];
-                    WorkItem.IsWork = true;
-                    WorkItem.Data = InputData;
-                    WriteLog(WorkItem.Data);
-                }
-                ProcessNextWork();
-            }
-            else if (!ListWork[TASK.InputNetmask].IsWork)
-            {
-                // check correct data
-                if (!InternetHelper.IsIPv4(InputData))
-                {
-                    WriteLogError(InputData + " is wrong format IPv4");
-                }
-                else // correct format IPv4
-                {
-                    var WorkItem = ListWork[TASK.InputNetmask];
-                    WorkItem.IsWork = true;
-                    WorkItem.Data = InputData;
-                    WriteLog(WorkItem.Data);
-
-                    // for add data next step
-                    IsClearInputText = false;
-                }
-                ProcessNextWork();
-            }
-            else if (!ListWork[TASK.InputGateway].IsWork)
-            {
-                // check correct data
-                if (!InternetHelper.IsIPv4(InputData))
-                {
-                    WriteLogError(InputData + " is wrong format IPv4");
-
-                    // for add data next step
-                    IsClearInputText = false;
-                }
-                else // correct format IPv4
-                {
-                    var WorkItem = ListWork[TASK.InputGateway];
-                    WorkItem.IsWork = true;
-                    WorkItem.Data = InputData;
-                    WriteLog(WorkItem.Data);
-                }
-                ProcessNextWork();
-            }
-            else if (!ListWork[TASK.InputDNS1].IsWork)
-            {
-                // check correct data
-                if (!InternetHelper.IsIPv4(InputData))
-                {
-                    WriteLogError(InputData + " is wrong format IPv4");
-                }
-                else // correct format IPv4
-                {
-                    var WorkItem = ListWork[TASK.InputDNS1];
-                    WorkItem.IsWork = true;
-                    WorkItem.Data = InputData;
-                    WriteLog(WorkItem.Data);
-                }
-                ProcessNextWork();
-            }
-            else if (!ListWork[TASK.InputDNS2].IsWork)
-            {
-                // check correct data
-                if (!InternetHelper.IsIPv4(InputData))
-                {
-                    WriteLogError(InputData + " is wrong format IPv4");
-                }
-                else // correct format IPv4
-                {
-                    var WorkItem = ListWork[TASK.InputDNS2];
-                    WorkItem.IsWork = true;
-                    WorkItem.Data = InputData;
-                    WriteLog(WorkItem.Data);
-                }
-                ProcessNextWork();
-            }
-            // some command home make
-            else if (InputData.ToLower().Trim() == "clear")
+            
+            // some command make
+            if (InputData.ToLower().Trim() == "clear")
             {
                 LogText.Clear();
             }
             else if (InputData.ToLower().Trim() == "restart")
             {
-                WriteLog("restart");
+                Log("restart");
                 Application.Restart();
             }
             else if (InputData.ToLower().Trim() == "exit")
             {
-                WriteLog("exit");
+                Log("exit");
                 Application.Exit();
             }
             else // normal cmd
             {
-                WriteLog(InputData);
-                WriteLog(WinHelper.cmd(InputData));
+                Log(InputData);
+                Log(WinHelper.cmd(InputData));
             }
 
             // Clear Input
@@ -207,12 +70,12 @@ namespace Mu_Change_Server_IP
                 InputTextSender.Clear();
             }
         }
-        private void WriteLog(string TextNew)
+        private void Log(string TextNew)
         {
             LogText.Text = string.Format("{0}\n[root ple]# {1}", LogText.Text, TextNew);
 
         }
-        private void WriteLogError(string TextNew)
+        private void LogError(string TextNew)
         {
             LogText.Text = string.Format("{0}\n\n[root ple]# ERROR: {1}\n", LogText.Text, TextNew);
 
@@ -242,9 +105,10 @@ namespace Mu_Change_Server_IP
             NetworkItemObj = new NetworkItem();
             /// change IP
             NetworkItemObj = NetworkConfig.GetNetworkItem();
-            WriteLog(NetworkItemObj.Name + ", IP: " + NetworkItemObj.IP);
-            ProcessNextWork();
+            Log(NetworkItemObj.Name + ", IP: " + NetworkItemObj.IP);
+            //ProcessNextWork();
 
+            NetworkWork();
         }
 
         private void LogText_KeyDown(object sender, KeyEventArgs e)
@@ -328,5 +192,52 @@ namespace Mu_Change_Server_IP
         }
 
         #endregion >>> Form <<<
+
+        #region >>> Network <<<
+        private void NetworkWork()
+        {
+            // read Network config
+            var NetworkJsonText = File.ReadAllText("Data\\Network.json");
+            Dictionary<string, string> NetworkDictionary = JsonConvert.DeserializeObject<Dictionary<string, string>>(NetworkJsonText);
+            // check right IPv4 format
+            foreach (KeyValuePair<string, string> Item in NetworkDictionary)
+            {
+                bool IsOK = InternetHelper.IsIPv4(Item.Value.Trim());
+                if (!IsOK)
+                {
+                    LogError(string.Format("Item {0} = {1} is not IPv4 format. Check /Data/Network.json .",Item.Key,Item.Value));
+                    return; // END work here
+                }
+                Log(string.Format("Check {0} = {1} is OK.", Item.Key, Item.Value));
+            }
+            // check right IPv4 vs Gateway
+            if(!InternetHelper.IsRightIPv4AndGateway(NetworkDictionary["IP"], NetworkDictionary["Gateway"]))
+            {
+                LogError("IPv4 not same Gateway, ex SAME.SAME.SAME.DIFFER .");
+                return; // END work here
+            }
+
+            // set data
+            NetworkConfig.SetIP(
+                    NetworkItemObj.Name,
+                    NetworkDictionary["IP"],
+                    NetworkDictionary["Netmask"],
+                    NetworkDictionary["Gateway"]
+                    );
+            NetworkConfig.SetDNS(
+                NetworkItemObj.Name,
+                NetworkDictionary["DNS1"],
+                NetworkDictionary["DNS2"]
+                );
+
+            // wait some for win update
+            Thread.Sleep(1000);
+
+            Log("Done. New IP For Verify: " + NetworkConfig.GetNetworkItem().IP);
+            Log("My production performance/effeitivelyale this Yearly >>>");
+            //
+            Log(WinHelper.cmd("ipconfig /all"));
+        }
+        #endregion >>> Network <<<
     }
 }
