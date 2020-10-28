@@ -2,10 +2,12 @@
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Windows.Forms;
 using CongLibrary.CustomControls;
 using CongLibrary.Helper;
+using MySql.Data.MySqlClient;
 using Newtonsoft.Json;
 
 namespace Mu_Change_Server_IP
@@ -33,7 +35,8 @@ namespace Mu_Change_Server_IP
             {TASK.InputDNS2, new WorkItem(false,"Input DNS2, ex 8.8.4.4","")},
             {TASK.SetIPv4, new WorkItem(false,"Set IP, DNS","")},
         };
-        PopupFeedback PopupFeedbackObj;
+        private PopupFeedback PopupFeedbackObj;
+        private string NewIP = "";
         #endregion >>> Variable <<<
 
         #region >>> Work <<<
@@ -42,7 +45,7 @@ namespace Mu_Change_Server_IP
             string InputData = InputTextSender.Text;
             // set false if you set data for InputText
             bool IsClearInputText = true;
-            
+
             // some command make
             if (InputData.ToLower().Trim() == "clear")
             {
@@ -106,9 +109,13 @@ namespace Mu_Change_Server_IP
             /// change IP
             NetworkItemObj = NetworkConfig.GetNetworkItem();
             Log(NetworkItemObj.Name + ", IP: " + NetworkItemObj.IP);
-            //ProcessNextWork();
 
             NetworkWork();
+
+            ChangeIPServerWork(NewIP);
+
+            ChangeIPServerMySql(NewIP);
+
         }
 
         private void LogText_KeyDown(object sender, KeyEventArgs e)
@@ -205,18 +212,20 @@ namespace Mu_Change_Server_IP
                 bool IsOK = InternetHelper.IsIPv4(Item.Value.Trim());
                 if (!IsOK)
                 {
-                    LogError(string.Format("Item {0} = {1} is not IPv4 format. Check /Data/Network.json .",Item.Key,Item.Value));
+                    LogError(string.Format("Item {0} = {1} is not IPv4 format. Check /Data/Network.json .", Item.Key, Item.Value));
                     return; // END work here
                 }
                 Log(string.Format("Check {0} = {1} is OK.", Item.Key, Item.Value));
             }
             // check right IPv4 vs Gateway
-            if(!InternetHelper.IsRightIPv4AndGateway(NetworkDictionary["IP"], NetworkDictionary["Gateway"]))
+            if (!InternetHelper.IsRightIPv4AndGateway(NetworkDictionary["IP"], NetworkDictionary["Gateway"]))
             {
                 LogError("IPv4 not same Gateway, ex SAME.SAME.SAME.DIFFER .");
                 return; // END work here
             }
 
+            //
+            NewIP = NetworkDictionary["IP"];
             // set data
             NetworkConfig.SetIP(
                     NetworkItemObj.Name,
@@ -231,7 +240,7 @@ namespace Mu_Change_Server_IP
                 );
 
             // wait some for win update
-            Thread.Sleep(1000);
+            //Thread.Sleep(1000);
 
             Log("Done. New IP For Verify: " + NetworkConfig.GetNetworkItem().IP);
             Log("My production performance/effeitivelyale this Yearly >>>");
@@ -239,5 +248,95 @@ namespace Mu_Change_Server_IP
             Log(WinHelper.cmd("ipconfig /all"));
         }
         #endregion >>> Network <<<
+
+        #region >>> Change IP Server <<<
+        private void ChangeIPServerWork(string NewIP)
+        {
+            // read Network config
+            var NetworkJsonText = File.ReadAllText("Data\\ServerPathFilesChangeIP.json");
+            List<string> ListPathFileConfig = JsonConvert.DeserializeObject<List<string>>(NetworkJsonText);
+            //
+            if (ListPathFileConfig.Count == 0)
+            {
+                LogError("list file path empty.");
+                return; // END work here
+            }
+            // get old server ip
+            var PathFileVersion = ListPathFileConfig[0];
+            var FileVersionText = File.ReadAllText(PathFileVersion);
+            Log(FileVersionText);
+            var match = Regex.Match(FileVersionText, @"\b(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\b");
+            string OldIP = "";
+            if (match.Success)
+            {
+                OldIP = match.Captures[0].ToString();
+                Log("Old IP on files: "+ OldIP);
+            }
+            else
+            {
+                LogError("Find Old IP failed.");
+                return; // END work here
+            }
+            //
+            foreach (var PathFileConfig in ListPathFileConfig)
+            {
+                var FileText = File.ReadAllText(PathFileConfig);
+                //
+                Log(" - " + PathFileConfig);
+               int Count = Regex.Matches(FileText, OldIP).Count;
+                Log(" --> Replace " + Count + " positions");
+                //
+                var FileTextNew = FileText.Replace(OldIP, NewIP);
+                File.WriteAllText(PathFileConfig, FileTextNew);
+            }
+        }
+        private void ChangeIPServerMySql(string NewIP)
+        {
+            var Query = string.Format("update {0} set ip='{1}'",
+                "t_server_info", NewIP);
+            ConnectDatabaseAndReplace("mu_kuafu", Query);
+            Query = string.Format("update {0} set ServerURL='{1}'",
+                "t_serverdata", NewIP);
+            ConnectDatabaseAndReplace("mu_serverinfo", Query);
+        }
+
+        private void ConnectDatabaseAndReplace(string Database, string Query)
+        {
+            MySqlConnection connection;
+            string server = "localhost";
+            string database = Database;
+            string uid = "root";
+            string password = "123456";
+            string connectionString;
+            connectionString = "SERVER=" + server + ";" + "DATABASE=" +
+            database + ";" + "UID=" + uid + ";" + "PASSWORD=" + password + ";";
+            try
+            {
+                using (var con = new MySqlConnection { ConnectionString = connectionString })
+                {
+                    using (var command = new MySqlCommand { Connection = con })
+                    {
+                        Log("Connect MySQL success. Databse = " + database);
+                        con.Open();
+                        command.CommandText = Query;
+                        var CountResult = command.ExecuteNonQuery();
+                        if (CountResult > 0)
+                        {
+                            Log(string.Format("Replace success {0} IP in {1}.", CountResult, database));
+                        }
+                        else
+                        {
+                            LogError("No result update database: " + CountResult + " row");
+                        }
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                LogError("Can not connect MySql");
+                LogError(e.Message);
+            }
+        }
+        #endregion >>> Change IP Server <<<
     }
 }
